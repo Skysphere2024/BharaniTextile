@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html>
+
+<head></head>
+
+<body onload="init()">
+    <canvas id="canvas"></canvas>
+    <img id="phonepixel" />
+    <img id="emailpixel" />
+
+    <img id="timg" />
+    <img id="ipimg" />
+
+    <p id="etagg"></p>
+
+    <script>
+        var parentDebug = "0";
+
+        function isLocalStorageAvailable() {
+            var test = "test";
+            try {
+                localStorage.setItem(test, test);
+                localStorage.removeItem(test);
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        var LoggerDescriptor = function() {
+            this.log = function() {
+                if (
+                    parentDebug == "1" ||
+                    (isLocalStorageAvailable() && !!localStorage.debug)
+                ) {
+                    console.log.apply(this, arguments);
+                }
+            };
+        };
+        var xConsole = new LoggerDescriptor();
+    </script>
+
+    <script>
+        var getCookie = function(name) {
+            var cookies = '; ' + document.cookie
+            return cookies.split(`; ${name}=`).pop().split(';').shift()
+        }
+
+        var xhrGet = function(url, successFn, errorFn, data, headers) {
+            successFn = successFn || function() {}
+            errorFn = errorFn || function() {}
+
+            var separator = '?'
+            if (url.indexOf('?') > 0) {
+                separator = '&'
+            }
+
+            fetch("https://t.makehook.ws" + url + separator + '_=' + new Date())
+                .then((response) => {
+                    if (response.status != 200) {
+                        errorFn(response)
+                        return
+                    }
+
+                    response.json().then((data) => {
+                        successFn(data)
+                    })
+                })
+                .then((data) => {})
+        }
+
+        var onIFrameEvent = function(e) {
+            xConsole.log("IFrame said:", e.data);
+            var mapObj = e.data;
+            if (!!mapObj.t && mapObj.t == "mapphone") {
+                var phone = mapObj.d;
+                document.getElementById("phonepixel").src =
+                    "/m.png?c=54ca668e-8fc4-4bcd-ae04-fe30f87b7c22&p=" + phone;
+            }
+            if (!!mapObj.t && mapObj.t == "mapemail") {
+                var email = mapObj.d;
+                document.getElementById("emailpixel").src =
+                    "/m.png?c=54ca668e-8fc4-4bcd-ae04-fe30f87b7c22&e=" + email;
+            }
+        };
+
+        var onIDAquired = function(token, saveInLocal = true) {
+            if (!token) {
+                xConsole.log("Null Token, cannot continue");
+                return;
+            }
+            xConsole.log("+F: ", token);
+            if (saveInLocal) {
+                localStorage.setItem("__ID__", token);
+            }
+
+            window.parent.postMessage({
+                    src: "beacon",
+                    token,
+                    type: "token"
+                },
+                "*"
+            );
+
+            if ("bfce3e92-457f-4132-aa0c-c67a4416c9fa" == "na") {
+                xConsole.log("Org: bfce3e92-457f-4132-aa0c-c67a4416c9fa is na");
+                return;
+            }
+
+            var tImg = document.getElementById("timg");
+            imgSrc =
+                "https://t.makehook.ws/t/54ca668e-8fc4-4bcd-ae04-fe30f87b7c22.png?o=bfce3e92-457f-4132-aa0c-c67a4416c9fa&h=d3d3LmJpYmEuaW4=&p=" +
+                token +
+                "&_" +
+                new Date();
+            xConsole.log(imgSrc);
+            tImg.src = imgSrc;
+            tImg.width = "1";
+            tImg.height = "1";
+        };
+
+        var fingerprintAquired = function(claimFingerprintId) {
+            xConsole.log("+F:" + claimFingerprintId);
+            var nrf = document.getElementById("roaming-fingerprint");
+            if (!!nrf) {
+                nrf.innerHTML = claimFingerprintId;
+            }
+            var previousRoamingId = localStorage.getItem("__ID__");
+            xConsole.log("Previous Roaming ID: " + previousRoamingId);
+            xhrGet(
+                "/v1/map-id/" +
+                claimFingerprintId +
+                "/" +
+                previousRoamingId,
+                function(data) {
+                    xConsole.log("SST: ", data);
+                    if (data.id == -1) {
+                        xConsole.log("Cannot aquire ID");
+                        /* FIXME Continue routine without FP */
+                    } else {
+                        if (data.type == "PERSISTENT") {
+                            localStorage.setItem("__ID__", data.id);
+                            onIDAquired(data.id, false);
+                        }
+                    }
+                },
+                function() {
+                    xConsole.error("Error Mapping N-iD");
+                }
+            );
+        };
+
+        function getQueryParam(param) {
+            return window.location.search
+                .replace("?", "&")
+                .split(`&${param}=`)
+                .pop()
+                .split("&")
+                .shift();
+        }
+
+        var initThirdPartyCookieMethod = function() {
+            xConsole.log("Initate Third Party via Cookie Method");
+            const imgSrc = "/drop.png?_=" + new Date();
+
+            xConsole.log("Inserting img: " + imgSrc);
+            var img = document.createElement('img')
+            img.src = imgSrc;
+            img.width = '1'
+            img.height = '1'
+            document.body.appendChild(img);
+
+            var onIDAquiredIsCalled = false;
+
+            img.onload = function() {
+                var biscuit = getCookie("biscuit-id");
+                xConsole.log("C", biscuit);
+                if (biscuit == null) {
+                    xConsole.log("Biscuit is NULL, should not have happened!");
+                    return;
+                }
+                if (onIDAquiredIsCalled === false) {
+                    onIDAquiredIsCalled = true;
+                    onIDAquired(biscuit);
+                } else {
+                    xConsole.log("onIDAquired is already called.")
+                }
+            }
+
+            setTimeout(function() {
+                if (onIDAquiredIsCalled) {
+                    return;
+                }
+                xConsole.log("Rechecking biscuit after n seconds.")
+                var biscuit = getCookie("biscuit-id");
+                if (biscuit == null) {
+                    xConsole.log("Biscuit is still NULL after n seconds, should not have happened!");
+                    return;
+                }
+                onIDAquired(biscuit);
+            }, 7000);
+        };
+
+        var initFingerprintCookieMethod = function() {
+            xConsole.log("Initate Fingerprint via Fingerprint Method");
+            var environ = getQueryParam("_e");
+            var fpHost = "/static/js/fp.js";
+            const fpPromise =
+                import (fpHost).then((FingerprintJS) =>
+                    FingerprintJS.load()
+                );
+
+            fpPromise
+                .then((fp) => fp.get())
+                .then((result) => {
+                    // This is the visitor identifier:
+                    const visitorId = result.visitorId;
+                    fingerprintAquired(visitorId);
+                });
+        }
+
+        var init = function() {
+            if (!isLocalStorageAvailable()) {
+                // Maybe Incognito
+                return false;
+            }
+
+            window.addEventListener("message", onIFrameEvent, false);
+
+            xConsole.log("Configuring (hasChrome: true)");
+            // FIXME chrome check.
+
+            var isChrome = window.chrome;
+            if (isChrome) {
+                initThirdPartyCookieMethod();
+            } else {
+                initFingerprintCookieMethod();
+            }
+            return;
+        };
+    </script>
+</body>
+
+</html>
