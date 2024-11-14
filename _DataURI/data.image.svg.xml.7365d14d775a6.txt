@@ -1,0 +1,1 @@
+data:image/svg+xml;charset=utf-8,<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14.407 21.315a6.907 6.907 0 1 0 0-13.815 6.907 6.907 0 0 0 0 13.815z" stroke="%23222"/><path d="M19.48 19.423L23.872 24" stroke="%23222" stroke-linecap="round"/></svg>

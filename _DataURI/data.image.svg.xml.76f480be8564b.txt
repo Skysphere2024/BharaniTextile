@@ -1,0 +1,1 @@
+data:image/svg+xml;charset=utf-8,%3Csvg width='18' height='18' viewBox='0 0 18 18' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7.407 14.315A6.907 6.907 0 1 0 7.407.5a6.907 6.907 0 0 0 0 13.815z' stroke='%23fff'/%3E%3Cpath d='M12.479 12.423L16.873 17' stroke='%23fff' stroke-linecap='round'/%3E%3C/svg%3E
